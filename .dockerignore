@@ -3,5 +3,4 @@ dist
 .angular
 .git
 .github
-deployment
 *.md
