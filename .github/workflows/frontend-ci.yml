@@ -1,0 +1,63 @@
+name: Frontend CI
+
+# CI for the Angular frontend: install, check formatting (Prettier), lint (ESLint), and build.
+# Mirrors the backend pipeline's intent; tests are intentionally omitted (none in this project).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Lint, format & build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22 with npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting (Prettier)
+        run: npm run format:check
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  docker-image:
+    name: Build & push image
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: calculate-profit-frontend
+      TAG: ${{ github.sha }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deployment/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.IMAGE }}:${{ env.TAG }},${{ env.IMAGE }}:latest
+
+      # Pushing is intentionally a no-op for now (no registry configured yet).
+      - name: Push image (no-op placeholder)
+        run: echo "Skipping push of ${IMAGE}:${TAG} — no registry configured yet."
