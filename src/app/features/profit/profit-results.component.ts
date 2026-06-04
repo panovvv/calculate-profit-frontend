@@ -45,7 +45,8 @@ import { CalculationResponse } from '../../core/models/calculation.model';
           </p>
         </div>
       } @else {
-        <table mat-table [dataSource]="calculations()" class="w-100">
+        <!-- Desktop / tablet: table (>= md) -->
+        <table mat-table [dataSource]="calculations()" class="d-none d-md-table w-100">
           <ng-container matColumnDef="shipmentReference">
             <th mat-header-cell *matHeaderCellDef>Shipment</th>
             <td mat-cell *matCellDef="let row">{{ row.shipmentReference }}</td>
@@ -87,6 +88,40 @@ import { CalculationResponse } from '../../core/models/calculation.model';
           </tr>
         </table>
 
+        <!-- Mobile: stacked cards (< md) -->
+        <div class="d-md-none">
+          @for (row of calculations(); track row.id) {
+            <div class="card mb-2">
+              <div class="card-body p-3">
+                <div class="d-flex justify-content-between">
+                  <span class="text-muted">Shipment</span>
+                  <span class="fw-medium">{{ row.shipmentReference }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <span class="text-muted">Income</span>
+                  <span>{{ row.income | currency: 'EUR' }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <span class="text-muted">Total Costs</span>
+                  <span>{{ row.totalCosts | currency: 'EUR' }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <span class="text-muted">Profit or Loss</span>
+                  <span [class.text-success]="row.profit" [class.text-danger]="!row.profit">
+                    {{ row.profitOrLoss | currency: 'EUR' }}
+                  </span>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <span class="text-muted">Calculated</span>
+                  <span class="text-end">{{ row.calculatedAt | date: 'd MMM y, HH:mm (O)' }}</span>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <p class="text-muted p-2 mb-0">No calculations found.</p>
+          }
+        </div>
+
         <mat-paginator
           [length]="totalElements()"
           [pageIndex]="pageIndex()"
@@ -100,8 +135,12 @@ import { CalculationResponse } from '../../core/models/calculation.model';
   styles: [
     `
       .filter-field {
-        width: 240px;
-        max-width: 100%;
+        width: 100%;
+      }
+      @media (min-width: 576px) {
+        .filter-field {
+          width: 240px;
+        }
       }
     `,
   ],

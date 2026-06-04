@@ -48,7 +48,13 @@ import { CalculationRequest } from '../../core/models/calculation.model';
         </mat-form-field>
 
         <div class="col-12 col-md-2 d-flex">
-          <button mat-flat-button color="primary" type="submit" [disabled]="pending()">
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            class="submit-btn"
+            [disabled]="pending()"
+          >
             @if (pending()) {
               <span class="d-inline-flex align-items-center gap-2">
                 <mat-progress-spinner mode="indeterminate" diameter="18" />
@@ -62,6 +68,18 @@ import { CalculationRequest } from '../../core/models/calculation.model';
       </form>
     </mat-card>
   `,
+  styles: [
+    `
+      .submit-btn {
+        width: 100%;
+      }
+      @media (min-width: 768px) {
+        .submit-btn {
+          width: auto;
+        }
+      }
+    `,
+  ],
 })
 export class ProfitFormComponent {
   private readonly fb = inject(FormBuilder);

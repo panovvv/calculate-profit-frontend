@@ -1,10 +1,10 @@
 <mat-toolbar class="app-header">
   <span class="brand">DACHSER</span>
-  <span class="subtitle">Intelligent Logistics</span>
+  <span class="subtitle d-none d-sm-inline">Intelligent Logistics</span>
   <span class="spacer"></span>
-  <span class="page-title">Calculate Profit</span>
+  <span class="page-title d-none d-sm-inline">Calculate Profit</span>
   @if (auth.isAuthenticated()) {
-    <span class="user"
+    <span class="user d-none d-md-inline"
       >Signed in as <strong>{{ auth.username() }}</strong></span
     >
     <button mat-stroked-button (click)="logout()">Sign out</button>
