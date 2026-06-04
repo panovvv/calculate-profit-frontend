@@ -86,4 +86,9 @@ export class ProfitFormComponent {
     }
     this.calculate.emit(this.form.getRawValue());
   }
+
+  /** Clears the form back to its initial values (called after a successful calculation). */
+  reset(): void {
+    this.form.reset({ shipmentReference: '', income: 0, cost: 0, additionalCost: 0 });
+  }
 }

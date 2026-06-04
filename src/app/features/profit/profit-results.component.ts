@@ -1,6 +1,7 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { CalculationResponse } from '../../core/models/calculation.model';
@@ -9,14 +10,25 @@ import { CalculationResponse } from '../../core/models/calculation.model';
 @Component({
   selector: 'app-profit-results',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatCardModule, MatTableModule, MatProgressSpinnerModule, CurrencyPipe, DatePipe],
+  imports: [
+    MatCardModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatProgressSpinnerModule,
+    CurrencyPipe,
+    DatePipe,
+  ],
   template: `
     <mat-card class="p-3">
       <h2 class="h5 mb-3">Results</h2>
 
       @if (loading()) {
-        <div class="d-flex justify-content-center p-4">
+        <div class="d-flex flex-column align-items-center p-4">
           <mat-progress-spinner mode="indeterminate" diameter="40" />
+          <p class="text-muted small mt-3 mb-0 text-center">
+            The backend runs on a free Render instance — the first request can take up to a minute
+            while it wakes up. If it times out, refresh in a minute.
+          </p>
         </div>
       } @else {
         <table mat-table [dataSource]="calculations()" class="w-100">
@@ -60,6 +72,14 @@ import { CalculationResponse } from '../../core/models/calculation.model';
             <td class="p-3 text-muted" [attr.colspan]="columns.length">No calculations yet.</td>
           </tr>
         </table>
+
+        <mat-paginator
+          [length]="totalElements()"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize()"
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          (page)="pageChange.emit($event)"
+        />
       }
     </mat-card>
   `,
@@ -69,6 +89,13 @@ export class ProfitResultsComponent {
 
   /** When true, a spinner is shown instead of the table (the list request is in flight). */
   readonly loading = input<boolean>(false);
+
+  readonly totalElements = input<number>(0);
+  readonly pageIndex = input<number>(0);
+  readonly pageSize = input<number>(10);
+
+  /** Emitted when the user changes page or page size. */
+  readonly pageChange = output<PageEvent>();
 
   protected readonly columns = [
     'shipmentReference',

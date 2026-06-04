@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CalculationRequest, CalculationResponse } from '../models/calculation.model';
+import { CalculationRequest, CalculationResponse, Page } from '../models/calculation.model';
 
 /** Talks to the backend's Calculate Profit endpoints. */
 @Injectable({ providedIn: 'root' })
@@ -15,12 +15,16 @@ export class ProfitService {
     return this.http.post<CalculationResponse>(this.baseUrl, request);
   }
 
-  /** Lists stored calculations, optionally filtered by shipment reference. */
-  list(shipmentReference?: string): Observable<CalculationResponse[]> {
-    let params = new HttpParams();
+  /** Returns a page of stored calculations, optionally filtered by shipment reference. */
+  list(
+    pageIndex = 0,
+    pageSize = 10,
+    shipmentReference?: string,
+  ): Observable<Page<CalculationResponse>> {
+    let params = new HttpParams().set('page', pageIndex).set('size', pageSize);
     if (shipmentReference) {
       params = params.set('shipment', shipmentReference);
     }
-    return this.http.get<CalculationResponse[]>(this.baseUrl, { params });
+    return this.http.get<Page<CalculationResponse>>(this.baseUrl, { params });
   }
 }

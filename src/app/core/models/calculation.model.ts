@@ -16,3 +16,17 @@ export interface CalculationResponse {
   profit: boolean;
   calculatedAt: string;
 }
+
+/** Pagination metadata (matches the `page` object of Spring Data's PagedModel). */
+export interface PageMeta {
+  size: number;
+  number: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+/** A page of items (matches Spring Data's PagedModel JSON: `{ content, page }`). */
+export interface Page<T> {
+  content: T[];
+  page: PageMeta;
+}

@@ -1,6 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { PageEvent } from '@angular/material/paginator';
 import { finalize } from 'rxjs';
 import { CalculationRequest, CalculationResponse } from '../../core/models/calculation.model';
 import { ProfitService } from '../../core/services/profit.service';
@@ -8,8 +16,8 @@ import { ProfitFormComponent } from './profit-form.component';
 import { ProfitResultsComponent } from './profit-results.component';
 
 /**
- * Container for the Calculate Profit page: wires the form to the service and renders the results.
- * Backend errors are surfaced as a dismissible corner notification showing the API's error detail.
+ * Container for the Calculate Profit page: wires the form to the service and renders a paged results
+ * grid. Backend errors are surfaced as a dismissible corner notification showing the API's detail.
  */
 @Component({
   selector: 'app-profit-page',
@@ -22,6 +30,10 @@ import { ProfitResultsComponent } from './profit-results.component';
         class="d-block mt-4"
         [calculations]="calculations()"
         [loading]="loading()"
+        [totalElements]="totalElements()"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        (pageChange)="onPageChange($event)"
       />
     </div>
   `,
@@ -29,15 +41,19 @@ import { ProfitResultsComponent } from './profit-results.component';
 export class ProfitPageComponent implements OnInit {
   private readonly service = inject(ProfitService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly form = viewChild(ProfitFormComponent);
 
   readonly calculations = signal<CalculationResponse[]>([]);
+  readonly totalElements = signal(0);
+  readonly pageIndex = signal(0);
+  readonly pageSize = signal(10);
   /** A list (GET) request is in flight — show the table spinner. */
   readonly loading = signal(false);
   /** A calculate (POST) request is in flight — disable the Calculate button. */
   readonly submitting = signal(false);
 
   ngOnInit(): void {
-    this.refresh();
+    this.load(0, this.pageSize());
   }
 
   onCalculate(request: CalculationRequest): void {
@@ -46,18 +62,30 @@ export class ProfitPageComponent implements OnInit {
       .calculate(request)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: () => this.refresh(),
+        next: () => {
+          this.form()?.reset();
+          this.load(0, this.pageSize()); // jump to the first page to show the new entry
+        },
         error: (error: HttpErrorResponse) => this.notifyError(error, 'Calculation failed'),
       });
   }
 
-  private refresh(): void {
+  onPageChange(event: PageEvent): void {
+    this.load(event.pageIndex, event.pageSize);
+  }
+
+  private load(pageIndex: number, pageSize: number): void {
     this.loading.set(true);
     this.service
-      .list()
+      .list(pageIndex, pageSize)
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (rows) => this.calculations.set(rows),
+        next: (page) => {
+          this.calculations.set(page.content);
+          this.totalElements.set(page.page.totalElements);
+          this.pageIndex.set(page.page.number);
+          this.pageSize.set(page.page.size);
+        },
         error: (error: HttpErrorResponse) => this.notifyError(error, 'Could not load calculations'),
       });
   }
