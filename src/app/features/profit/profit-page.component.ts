@@ -34,6 +34,7 @@ import { ProfitResultsComponent } from './profit-results.component';
         [pageIndex]="pageIndex()"
         [pageSize]="pageSize()"
         (pageChange)="onPageChange($event)"
+        (filterChange)="onFilterChange($event)"
       />
     </div>
   `,
@@ -51,6 +52,8 @@ export class ProfitPageComponent implements OnInit {
   readonly loading = signal(false);
   /** A calculate (POST) request is in flight — disable the Calculate button. */
   readonly submitting = signal(false);
+  /** Active shipment-id filter ('' = no filter). */
+  readonly shipmentFilter = signal('');
 
   ngOnInit(): void {
     this.load(0, this.pageSize());
@@ -74,10 +77,15 @@ export class ProfitPageComponent implements OnInit {
     this.load(event.pageIndex, event.pageSize);
   }
 
+  onFilterChange(shipmentReference: string): void {
+    this.shipmentFilter.set(shipmentReference);
+    this.load(0, this.pageSize()); // reset to the first page when the filter changes
+  }
+
   private load(pageIndex: number, pageSize: number): void {
     this.loading.set(true);
     this.service
-      .list(pageIndex, pageSize)
+      .list(pageIndex, pageSize, this.shipmentFilter() || undefined)
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (page) => {

@@ -1,9 +1,14 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { CalculationResponse } from '../../core/models/calculation.model';
 
 /** Presentational results grid: Income / Total Costs / Profit-or-Loss per stored calculation. */
@@ -11,16 +16,25 @@ import { CalculationResponse } from '../../core/models/calculation.model';
   selector: 'app-profit-results',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
     MatPaginatorModule,
     MatProgressSpinnerModule,
+    MatFormFieldModule,
+    MatInputModule,
     CurrencyPipe,
     DatePipe,
   ],
   template: `
     <mat-card class="p-3">
-      <h2 class="h5 mb-3">Results</h2>
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h2 class="h5 mb-0">Results</h2>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+          <mat-label>Filter by Shipment ID</mat-label>
+          <input matInput [formControl]="filter" autocomplete="off" />
+        </mat-form-field>
+      </div>
 
       @if (loading()) {
         <div class="d-flex flex-column align-items-center p-4">
@@ -69,7 +83,7 @@ import { CalculationResponse } from '../../core/models/calculation.model';
           <tr mat-header-row *matHeaderRowDef="columns"></tr>
           <tr mat-row *matRowDef="let row; columns: columns"></tr>
           <tr class="mat-row" *matNoDataRow>
-            <td class="p-3 text-muted" [attr.colspan]="columns.length">No calculations yet.</td>
+            <td class="p-3 text-muted" [attr.colspan]="columns.length">No calculations found.</td>
           </tr>
         </table>
 
@@ -83,6 +97,14 @@ import { CalculationResponse } from '../../core/models/calculation.model';
       }
     </mat-card>
   `,
+  styles: [
+    `
+      .filter-field {
+        width: 240px;
+        max-width: 100%;
+      }
+    `,
+  ],
 })
 export class ProfitResultsComponent {
   readonly calculations = input.required<CalculationResponse[]>();
@@ -97,6 +119,11 @@ export class ProfitResultsComponent {
   /** Emitted when the user changes page or page size. */
   readonly pageChange = output<PageEvent>();
 
+  /** Emitted (debounced) with the entered shipment-id filter (empty string clears it). */
+  readonly filterChange = output<string>();
+
+  protected readonly filter = new FormControl('', { nonNullable: true });
+
   protected readonly columns = [
     'shipmentReference',
     'income',
@@ -104,4 +131,10 @@ export class ProfitResultsComponent {
     'profitOrLoss',
     'calculatedAt',
   ];
+
+  constructor() {
+    this.filter.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((value) => this.filterChange.emit(value.trim()));
+  }
 }
