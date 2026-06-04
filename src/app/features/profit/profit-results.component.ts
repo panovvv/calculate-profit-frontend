@@ -1,6 +1,7 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { CalculationResponse } from '../../core/models/calculation.model';
 
@@ -8,56 +9,67 @@ import { CalculationResponse } from '../../core/models/calculation.model';
 @Component({
   selector: 'app-profit-results',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatCardModule, MatTableModule, CurrencyPipe, DatePipe],
+  imports: [MatCardModule, MatTableModule, MatProgressSpinnerModule, CurrencyPipe, DatePipe],
   template: `
     <mat-card class="p-3">
       <h2 class="h5 mb-3">Results</h2>
-      <table mat-table [dataSource]="calculations()" class="w-100">
-        <ng-container matColumnDef="shipmentReference">
-          <th mat-header-cell *matHeaderCellDef>Shipment</th>
-          <td mat-cell *matCellDef="let row">{{ row.shipmentReference }}</td>
-        </ng-container>
 
-        <ng-container matColumnDef="income">
-          <th mat-header-cell *matHeaderCellDef>Income</th>
-          <td mat-cell *matCellDef="let row">{{ row.income | currency: 'EUR' }}</td>
-        </ng-container>
+      @if (loading()) {
+        <div class="d-flex justify-content-center p-4">
+          <mat-progress-spinner mode="indeterminate" diameter="40" />
+        </div>
+      } @else {
+        <table mat-table [dataSource]="calculations()" class="w-100">
+          <ng-container matColumnDef="shipmentReference">
+            <th mat-header-cell *matHeaderCellDef>Shipment</th>
+            <td mat-cell *matCellDef="let row">{{ row.shipmentReference }}</td>
+          </ng-container>
 
-        <ng-container matColumnDef="totalCosts">
-          <th mat-header-cell *matHeaderCellDef>Total Costs</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalCosts | currency: 'EUR' }}</td>
-        </ng-container>
+          <ng-container matColumnDef="income">
+            <th mat-header-cell *matHeaderCellDef>Income</th>
+            <td mat-cell *matCellDef="let row">{{ row.income | currency: 'EUR' }}</td>
+          </ng-container>
 
-        <ng-container matColumnDef="profitOrLoss">
-          <th mat-header-cell *matHeaderCellDef>Profit or Loss</th>
-          <td
-            mat-cell
-            *matCellDef="let row"
-            [class.text-success]="row.profit"
-            [class.text-danger]="!row.profit"
-          >
-            {{ row.profitOrLoss | currency: 'EUR' }}
-          </td>
-        </ng-container>
+          <ng-container matColumnDef="totalCosts">
+            <th mat-header-cell *matHeaderCellDef>Total Costs</th>
+            <td mat-cell *matCellDef="let row">{{ row.totalCosts | currency: 'EUR' }}</td>
+          </ng-container>
 
-        <ng-container matColumnDef="calculatedAt">
-          <th mat-header-cell *matHeaderCellDef>Calculated</th>
-          <td mat-cell *matCellDef="let row">
-            {{ row.calculatedAt | date: 'd MMM y, HH:mm (O)' }}
-          </td>
-        </ng-container>
+          <ng-container matColumnDef="profitOrLoss">
+            <th mat-header-cell *matHeaderCellDef>Profit or Loss</th>
+            <td
+              mat-cell
+              *matCellDef="let row"
+              [class.text-success]="row.profit"
+              [class.text-danger]="!row.profit"
+            >
+              {{ row.profitOrLoss | currency: 'EUR' }}
+            </td>
+          </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="columns"></tr>
-        <tr mat-row *matRowDef="let row; columns: columns"></tr>
-        <tr class="mat-row" *matNoDataRow>
-          <td class="p-3 text-muted" [attr.colspan]="columns.length">No calculations yet.</td>
-        </tr>
-      </table>
+          <ng-container matColumnDef="calculatedAt">
+            <th mat-header-cell *matHeaderCellDef>Calculated</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.calculatedAt | date: 'd MMM y, HH:mm (O)' }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="p-3 text-muted" [attr.colspan]="columns.length">No calculations yet.</td>
+          </tr>
+        </table>
+      }
     </mat-card>
   `,
 })
 export class ProfitResultsComponent {
   readonly calculations = input.required<CalculationResponse[]>();
+
+  /** When true, a spinner is shown instead of the table (the list request is in flight). */
+  readonly loading = input<boolean>(false);
+
   protected readonly columns = [
     'shipmentReference',
     'income',

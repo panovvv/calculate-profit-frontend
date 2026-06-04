@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { finalize } from 'rxjs';
 import { CalculationRequest, CalculationResponse } from '../../core/models/calculation.model';
 import { ProfitService } from '../../core/services/profit.service';
 import { ProfitFormComponent } from './profit-form.component';
@@ -16,8 +17,12 @@ import { ProfitResultsComponent } from './profit-results.component';
   imports: [ProfitFormComponent, ProfitResultsComponent, MatSnackBarModule],
   template: `
     <div class="container py-4">
-      <app-profit-form (calculate)="onCalculate($event)" />
-      <app-profit-results class="d-block mt-4" [calculations]="calculations()" />
+      <app-profit-form (calculate)="onCalculate($event)" [pending]="submitting()" />
+      <app-profit-results
+        class="d-block mt-4"
+        [calculations]="calculations()"
+        [loading]="loading()"
+      />
     </div>
   `,
 })
@@ -26,23 +31,35 @@ export class ProfitPageComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
 
   readonly calculations = signal<CalculationResponse[]>([]);
+  /** A list (GET) request is in flight — show the table spinner. */
+  readonly loading = signal(false);
+  /** A calculate (POST) request is in flight — disable the Calculate button. */
+  readonly submitting = signal(false);
 
   ngOnInit(): void {
     this.refresh();
   }
 
   onCalculate(request: CalculationRequest): void {
-    this.service.calculate(request).subscribe({
-      next: () => this.refresh(),
-      error: (error: HttpErrorResponse) => this.notifyError(error, 'Calculation failed'),
-    });
+    this.submitting.set(true);
+    this.service
+      .calculate(request)
+      .pipe(finalize(() => this.submitting.set(false)))
+      .subscribe({
+        next: () => this.refresh(),
+        error: (error: HttpErrorResponse) => this.notifyError(error, 'Calculation failed'),
+      });
   }
 
   private refresh(): void {
-    this.service.list().subscribe({
-      next: (rows) => this.calculations.set(rows),
-      error: (error: HttpErrorResponse) => this.notifyError(error, 'Could not load calculations'),
-    });
+    this.loading.set(true);
+    this.service
+      .list()
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (rows) => this.calculations.set(rows),
+        error: (error: HttpErrorResponse) => this.notifyError(error, 'Could not load calculations'),
+      });
   }
 
   /** Shows the backend's error detail (falling back to a generic message) as a dismissible toast. */

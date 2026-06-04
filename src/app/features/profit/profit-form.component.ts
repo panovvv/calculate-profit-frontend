@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CalculationRequest } from '../../core/models/calculation.model';
 
 /** Presentational form for entering a shipment's income and costs; emits a {@link CalculationRequest}. */
@@ -16,6 +17,7 @@ import { CalculationRequest } from '../../core/models/calculation.model';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatProgressSpinnerModule,
   ],
   template: `
     <mat-card class="p-3">
@@ -46,7 +48,16 @@ import { CalculationRequest } from '../../core/models/calculation.model';
         </mat-form-field>
 
         <div class="col-12 col-md-2 d-flex">
-          <button mat-flat-button color="primary" type="submit">Calculate</button>
+          <button mat-flat-button color="primary" type="submit" [disabled]="pending()">
+            @if (pending()) {
+              <span class="d-inline-flex align-items-center gap-2">
+                <mat-progress-spinner mode="indeterminate" diameter="18" />
+                Calculating…
+              </span>
+            } @else {
+              Calculate
+            }
+          </button>
         </div>
       </form>
     </mat-card>
@@ -54,6 +65,9 @@ import { CalculationRequest } from '../../core/models/calculation.model';
 })
 export class ProfitFormComponent {
   private readonly fb = inject(FormBuilder);
+
+  /** When true, the Calculate button is disabled and shows a spinner (a request is in flight). */
+  readonly pending = input<boolean>(false);
 
   /** Emitted with the entered values when the form is submitted and valid. */
   readonly calculate = output<CalculationRequest>();
